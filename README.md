@@ -24,7 +24,7 @@ Alternative to incr which atomically incrments and sets the expiry for a value. 
 initializes it at 0 and then icrements it. Made to cover the counter pattern described here (https://redis.io/commands/incr#pattern-counter)
 
 
-####Running Tests
+### Running Tests
 
 1. Install the development requirements using the requirements.txt file:
 

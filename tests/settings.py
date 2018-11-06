@@ -2,7 +2,7 @@ SECRET_KEY = "django_tests_secret_key"
 
 CACHES = {
   "default": {
-    "BACKEND": "adv_django_redis.redis_cache.ExtendedRedisCache",
+    "BACKEND": "extended_django_redis.redis_cache.ExtendedRedisCache",
     "LOCATION": [
       "redis://127.0.0.1:6379?db=1",
       "redis://127.0.0.1:6379?db=1",

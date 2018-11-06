@@ -6,7 +6,7 @@ class ExtendedRedisCache(RedisCache, ExtendedBaseCache):
 
   def __init__(self, server, params):
     options = params.setdefault("OPTIONS", {})
-    options.setdefault("CLIENT_CLASS", "adv_django_redis.client.DefaultClient")
+    options.setdefault("CLIENT_CLASS", "extended_django_redis.client.DefaultClient")
     super().__init__(server, params)
 
   @omit_exception

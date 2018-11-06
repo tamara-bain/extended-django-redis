@@ -5,6 +5,12 @@ from abc import ABC, abstractmethod
 class CacheAndClientSharedInterface(ABC):
 
   @abstractmethod
+  def ttl(self, key, **kwargs):
+    """Obtains the time before expiry for a given key, returns 0 if there is no key,
+    None if the key does not expire"""
+    pass
+
+  @abstractmethod
   def lock(self, key, **kwargs):
     """Obtains a lock for a specific key"""
     pass

@@ -16,7 +16,7 @@ class CacheAndClientSharedInterface(ABC):
     pass
 
   @abstractmethod
-  def incr_or_create(self, key, **kwargs):
+  def counter(self, key, **kwargs):
     """
     Will increment the value in cache. If the value does not exist will set the value in
     cache with the given timeout. Suitable for rate limiting patterns where

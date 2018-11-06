@@ -116,7 +116,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
                 return None
             return exp - time.time()
 
-    def incr_or_create(self, key, delta=1, timeout=DEFAULT_TIMEOUT, version=None, **kwargs):
+    def counter(self, key, delta=1, timeout=DEFAULT_TIMEOUT, version=None, **kwargs):
         key = self.make_key(key, version=version)
         self.validate_key(key)
 

@@ -8,7 +8,7 @@ from .base_client import BaseClient
 
 class DefaultClient(DjangoRedisDefaultClient, BaseClient):
 
-    def incr_or_create(self, key, delta=1, timeout=DEFAULT_TIMEOUT, version=None, client=None):
+    def counter(self, key, delta=1, timeout=DEFAULT_TIMEOUT, version=None, client=None):
         """
         Increments the given key and sets the expiry in an atomic operation (lua script)
 

@@ -14,14 +14,14 @@ class DjangoRedisCacheTests(TestCase):
     except Exception:
       pass
 
-  def test_incr_or_create(self):
+  def test_counter(self):
     # initially the key should not exist
     key_to_increment = "test_key"
     result = self.cache.get(key_to_increment, None)
     self.assertIsNone(result)
 
     # after calling incr_or_create it should exist and be 1
-    result = self.cache.incr_or_create(key_to_increment)
+    result = self.cache.counter(key_to_increment)
     self.assertEqual(result, 1)
 
     # the ttl should be almost equal to the default ttl
@@ -29,15 +29,15 @@ class DjangoRedisCacheTests(TestCase):
     self.assertAlmostEqual(ttl, self.default_timeout, 1)
 
     # calling incr or create again should increment the value
-    result = self.cache.incr_or_create(key_to_increment)
+    result = self.cache.counter(key_to_increment)
     self.assertEqual(result, 2)
 
     # we should be able to increment by a custom amount
-    result = self.cache.incr_or_create(key_to_increment, delta=5)
+    result = self.cache.counter(key_to_increment, delta=5)
     self.assertEqual(result, 7)
 
     # we should be able to set a custom ttl
-    result = self.cache.incr_or_create(key_to_increment, timeout=10)
+    result = self.cache.counter(key_to_increment, timeout=10)
     ttl = self.cache.ttl(key_to_increment)
     self.assertAlmostEqual(ttl, 10, 1)
 

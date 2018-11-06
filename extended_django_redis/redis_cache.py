@@ -10,8 +10,8 @@ class ExtendedRedisCache(RedisCache, ExtendedBaseCache):
     super().__init__(server, params)
 
   @omit_exception
-  def incr_or_create(self, key, **kwargs):
-    return self.client.incr_or_create(key, **kwargs)
+  def counter(self, key, **kwargs):
+    return self.client.counter(key, **kwargs)
 
   @omit_exception
   def age(self, key, original_ttl, **kwargs):

@@ -1,0 +1,34 @@
+from django_redis.cache import RedisCache, omit_exception
+from .base_cache import ExtendedBaseCache
+
+
+class ExtendedRedisCache(RedisCache, ExtendedBaseCache):
+
+  def __init__(self, server, params):
+    options = params.setdefault("OPTIONS", {})
+    options.setdefault("CLIENT_CLASS", "adv_django_redis.client.DefaultClient")
+    super().__init__(server, params)
+
+  @omit_exception
+  def incr_or_create(self, key, **kwargs):
+    return self.client.incr_or_create(key, **kwargs)
+
+  @omit_exception
+  def age(self, key, original_ttl, **kwargs):
+    return self.client.age(key, original_ttl, **kwargs)
+
+  @omit_exception
+  def set_hashmap(self, key, hashmap, **kwargs):
+    return self.client.set_hashmap(key, hashmap, **kwargs)
+
+  @omit_exception
+  def get_hashmap(self, key, **kwargs):
+    return self.client.get_hashmap(key, **kwargs)
+
+  @omit_exception
+  def get_hashmap_value(self, key, field, **kwargs):
+    return self.client.get_hashmap_value(key, field, **kwargs)
+
+  @omit_exception
+  def set_hashmap_values(self, key, hashmap, **kwargs):
+    return self.client.set_hashmap_values(self, key, hashmap, **kwargs)

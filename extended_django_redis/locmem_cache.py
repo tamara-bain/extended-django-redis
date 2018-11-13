@@ -153,11 +153,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
         if len(hashmap) == 0:
             raise ValueError("set_hashmap requires a non-empty dictionary")
 
-        # add this check here because Redis hash map will only hash primitivie
-        # values
-        isPrimitive = lambda x: type(x) in (int, float, bool, str)
-        if not all([isPrimitive(value) for value in hashmap.values()]):
-            raise ValueError("cache hashmap only allows primitive values")
+        hashmap = {key: pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
 
         with self._lock:
             if not self._has_key(key):
@@ -178,7 +174,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
                 return {}
             dictionary = self._cache[key]
             self._cache.move_to_end(key, last=False)
-        return dictionary
+        return {key: pickle.loads(value) for key, value in dictionary.items()}
 
     def get_hashmap_value(self, key, field, version=None, **kwargs):
         key = self.make_key(key, version=version)
@@ -189,4 +185,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
                 return None
             dictionary = self._cache[key]
             self._cache.move_to_end(key, last=False)
-        return dictionary.get(field, None)
+        value = dictionary.get(field, None)
+        if value is not None:
+            value = pickle.loads(value)
+        return value

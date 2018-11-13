@@ -54,7 +54,7 @@ class DjangoRedisCacheTests(TestCase):
 
   def test_set_hashmap(self):
     test_key = "test_key"
-    hashmap = {"a": 'cat', "b": 'dog'}
+    hashmap = {"a": '☢', "b": 'dog', 'c': 3}
     self.cache.set_hashmap(test_key, hashmap)
 
     # should not set ttl
@@ -74,8 +74,9 @@ class DjangoRedisCacheTests(TestCase):
     hashmap2 = {"b": "not a dog"}
     self.cache.set_hashmap(test_key, hashmap2)
     result = self.cache.get_hashmap(test_key)
-    self.assertEqual(result["a"], "cat")
+    self.assertEqual(result["a"], "☢")
     self.assertEqual(result["b"], "not a dog")
+    self.assertEqual(result["c"], 3)
     return
 
 

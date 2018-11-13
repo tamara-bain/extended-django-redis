@@ -2,11 +2,11 @@ from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django_redis.client import DefaultClient as DjangoRedisDefaultClient
 from django_redis.client.default import _main_exceptions
 from django_redis.exceptions import ConnectionInterrupted
-
 from .base_client import BaseClient
-
+from django_redis.exceptions import CompressorError
 
 class DefaultClient(DjangoRedisDefaultClient, BaseClient):
+
 
     def counter(self, key, delta=1, timeout=DEFAULT_TIMEOUT, version=None, client=None):
         """
@@ -63,6 +63,8 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
 
         key = self.make_key(key, version=version)
 
+        dictionary = {k: self.encode(v) for k, v in dictionary.items()}
+
         try:
             value = client.hmset(key, dictionary)
         except _main_exceptions as e:
@@ -70,7 +72,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
 
         return value
 
-    def get_hashmap(self, key, version=None, client=None):
+    def get_hashmap(self, key, version=None, client=None, decode=True):
         """
         Returns a python dictionary if it exists otherwise {}.
         """
@@ -84,7 +86,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client, parent=e)
 
-        return {k.decode("utf-8"): v.decode("utf-8") for k, v in value.items()}
+        return {k.decode('utf8'): self.decode(v) for k, v in value.items()}
 
     def get_hashmap_value(self, key, field, version=None, client=None):
         """
@@ -103,4 +105,4 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         if value is None:
             return None
 
-        return value.decode("utf-8")
+        return self.decode(value)

@@ -2,7 +2,6 @@ from unittest import TestCase
 from django.core.cache import cache, caches
 import time
 import threading
-import copy
 
 class DjangoRedisCacheTests(TestCase):
   def setUp(self):
@@ -77,7 +76,7 @@ class DjangoRedisCacheTests(TestCase):
   def test_get_hashmap(self):
     test_key = "test_key"
     hashmap = {"a": 'cat', "b": 'dog'}
-    self.cache.set_hashmap(test_key, copy.copy(hashmap))
+    self.cache.set_hashmap(test_key, hashmap)
 
     # test result
     result = self.cache.get_hashmap(test_key)

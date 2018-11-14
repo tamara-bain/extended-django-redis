@@ -150,11 +150,11 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
         if type(hashmap) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
 
+        hashmap = {key: pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
         # store creation time
         # we pop this off before returning all keys
-        hashmap[creation_key] = int(time.time())
 
-        hashmap = {key: pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
+        hashmap[creation_key] = pickle.dumps(int(time.time()), pickle.HIGHEST_PROTOCOL)
 
         with self._lock:
             if not self._has_key(key):
@@ -175,8 +175,9 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
                 return {}
             dictionary = self._cache[key]
             self._cache.move_to_end(key, last=False)
-        dictionary = {key: pickle.loads(value) for key, value in dictionary.items()}
+
         dictionary.pop(creation_key, None)
+        dictionary = {key: pickle.loads(value) for key, value in dictionary.items()}
         return dictionary
 
     def get_hashmap_value(self, key, field, version=None, **kwargs):

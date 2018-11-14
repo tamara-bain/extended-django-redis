@@ -55,10 +55,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         if type(dictionary) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
 
-        # store creation time, this has the added benefit of
-        # letting us save empty dictionaries in cache
-        # we pop this off before returning all keys
-        dictionary[creation_key] = int(time.time())
+
 
         if client is None:
             client = self.get_client(write=True)
@@ -66,6 +63,10 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         key = self.make_key(key, version=version)
 
         dictionary = {k: self.encode(v) for k, v in dictionary.items()}
+        # store creation time, this has the added benefit of
+        # letting us save empty dictionaries in cache
+        # we pop this off before returning all keys
+        dictionary[creation_key] = self.encode(int(time.time()))
 
         try:
             value = client.hmset(key, dictionary)

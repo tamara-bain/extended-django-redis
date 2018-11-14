@@ -2,7 +2,7 @@ from unittest import TestCase
 from django.core.cache import cache, caches
 import time
 import threading
-
+import copy
 
 class DjangoRedisCacheTests(TestCase):
   def setUp(self):
@@ -62,11 +62,6 @@ class DjangoRedisCacheTests(TestCase):
 
     # setting a hashmap with a non-dictionary should result in an error
     with self.assertRaises(ValueError) as e:
-      self.cache.set_hashmap(test_key, {})
-    self.assertIn("empty", str(e.exception))
-
-    # setting a hashmap with a non-dictionary should result in an error
-    with self.assertRaises(ValueError) as e:
       self.cache.set_hashmap(test_key, "")
     self.assertIn("dict type", str(e.exception))
 
@@ -79,20 +74,18 @@ class DjangoRedisCacheTests(TestCase):
     self.assertEqual(result["c"], 3)
     return
 
-
   def test_get_hashmap(self):
     test_key = "test_key"
     hashmap = {"a": 'cat', "b": 'dog'}
-    self.cache.set_hashmap(test_key, hashmap)
+    self.cache.set_hashmap(test_key, copy.copy(hashmap))
 
     # test result
     result = self.cache.get_hashmap(test_key)
     self.assertIn("a", result)
     self.assertIn("b", result)
-    self.assertEqual(result["a"], "cat")
-    self.assertEqual(result["b"], "dog")
+    self.assertEqual(result, hashmap)
 
-    # an unset key should return none
+    # an unset key should return an empty map
     result = self.cache.get_hashmap("unset")
     self.assertEqual(result, {})
 

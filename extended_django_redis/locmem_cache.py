@@ -143,15 +143,16 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
             return None
         return original_ttl - exp
 
-    def set_hashmap(self, key, hashmap, version=None, **kwargs):
+    def set_hashmap(self, key, hashmap, version=None, creation_key="_created", **kwargs):
         key = self.make_key(key, version=version)
         self.validate_key(key)
 
         if type(hashmap) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
 
-        if len(hashmap) == 0:
-            raise ValueError("set_hashmap requires a non-empty dictionary")
+        # store creation time
+        # we pop this off before returning all keys
+        hashmap[creation_key] = int(time.time())
 
         hashmap = {key: pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
 
@@ -163,7 +164,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
             dictionary.update(hashmap)
             self._set(key, dictionary, None)
 
-    def get_hashmap(self, key, version=None, **kwargs):
+    def get_hashmap(self, key, version=None, creation_key="_created",  **kwargs):
         """
         Returns a python dictionary if it exists otherwise {}.
         """
@@ -174,7 +175,9 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
                 return {}
             dictionary = self._cache[key]
             self._cache.move_to_end(key, last=False)
-        return {key: pickle.loads(value) for key, value in dictionary.items()}
+        dictionary = {key: pickle.loads(value) for key, value in dictionary.items()}
+        dictionary.pop(creation_key, None)
+        return dictionary
 
     def get_hashmap_value(self, key, field, version=None, **kwargs):
         key = self.make_key(key, version=version)

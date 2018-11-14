@@ -1,9 +1,9 @@
+import time
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django_redis.client import DefaultClient as DjangoRedisDefaultClient
 from django_redis.client.default import _main_exceptions
 from django_redis.exceptions import ConnectionInterrupted
 from .base_client import BaseClient
-from django_redis.exceptions import CompressorError
 
 class DefaultClient(DjangoRedisDefaultClient, BaseClient):
 
@@ -47,7 +47,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
             return None
         return original_ttl - ttl
 
-    def set_hashmap(self, key, dictionary, version=None, client=None):
+    def set_hashmap(self, key, dictionary, version=None, client=None, creation_key="_created"):
         """
         Dictionary values must be strings or numbers.
         """
@@ -55,8 +55,10 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         if type(dictionary) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
 
-        if len(dictionary) == 0:
-            raise ValueError("set_hashmap requires a non-empty dictionary")
+        # store creation time, this has the added benefit of
+        # letting us save empty dictionaries in cache
+        # we pop this off before returning all keys
+        dictionary[creation_key] = int(time.time())
 
         if client is None:
             client = self.get_client(write=True)
@@ -72,7 +74,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
 
         return value
 
-    def get_hashmap(self, key, version=None, client=None, decode=True):
+    def get_hashmap(self, key, version=None, client=None, decode=True, creation_key="_created"):
         """
         Returns a python dictionary if it exists otherwise {}.
         """
@@ -86,7 +88,9 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client, parent=e)
 
-        return {k.decode('utf8'): self.decode(v) for k, v in value.items()}
+        dictionary = {k.decode('utf8'): self.decode(v) for k, v in value.items()}
+        dictionary.pop(creation_key, None)
+        return dictionary
 
     def get_hashmap_value(self, key, field, version=None, client=None):
         """

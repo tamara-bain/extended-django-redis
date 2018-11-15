@@ -137,13 +137,21 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
     def age(self, key, original_ttl, version=None, **kwargs):
         key = self.make_key(key, version=version)
         self.validate_key(key)
-
-        exp = self._expire_info.get(key, -1) - time.time()
-        if (exp < 0):
+        exp = self._expire_info.get(key, -1)
+        if exp is None:
             return None
+        exp -= time.time()
+        if exp < 0:
+            return original_ttl
         return original_ttl - exp
 
-    def set_hashmap(self, key, hashmap, version=None, creation_key="_created", **kwargs):
+    def delete_and_set_hashmap(self, key, dictionary, **kwargs):
+        self._set_hashmap(key, dictionary, clear_existing=True, **kwargs)
+
+    def set_hashmap(self, key, dictionary, **kwargs):
+        self._set_hashmap(key, dictionary, clear_existing=False, **kwargs)
+
+    def _set_hashmap(self, key, hashmap, version=None, last_set_key="_last_set", clear_existing=False, **kwargs):
         key = self.make_key(key, version=version)
         self.validate_key(key)
 
@@ -151,20 +159,23 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
             raise ValueError("set_hashmap expects dictionary to be a dict type")
 
         hashmap = {key: pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
-        # store creation time
-        # we pop this off before returning all keys
 
-        hashmap[creation_key] = pickle.dumps(int(time.time()), pickle.HIGHEST_PROTOCOL)
+        # store update time
+        # we pop this off before returning all keys
+        hashmap[last_set_key] = pickle.dumps(int(time.time()), pickle.HIGHEST_PROTOCOL)
 
         with self._lock:
             if not self._has_key(key):
                 self._set(key, hashmap, None)
             dictionary = self._cache[key]
             self._cache.move_to_end(key, last=False)
-            dictionary.update(hashmap)
+            if clear_existing:
+                dictionary = hashmap
+            else:
+                dictionary.update(hashmap)
             self._set(key, dictionary, None)
 
-    def get_hashmap(self, key, version=None, creation_key="_created",  **kwargs):
+    def get_hashmap(self, key, version=None, last_set_key="_last_set",  **kwargs):
         """
         Returns a python dictionary if it exists otherwise {}.
         """
@@ -176,7 +187,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
             dictionary = self._cache[key]
             self._cache.move_to_end(key, last=False)
 
-        dictionary.pop(creation_key, None)
+        dictionary.pop(last_set_key, None)
         dictionary = {key: pickle.loads(value) for key, value in dictionary.items()}
         return dictionary
 

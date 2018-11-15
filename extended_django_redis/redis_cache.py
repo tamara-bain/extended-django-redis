@@ -32,3 +32,8 @@ class ExtendedRedisCache(RedisCache, ExtendedBaseCache):
   @omit_exception
   def set_hashmap_values(self, key, hashmap, **kwargs):
     return self.client.set_hashmap_values(self, key, hashmap, **kwargs)
+
+  @omit_exception
+  def delete_and_set_hashmap(self, key, hashmap, **kwargs):
+      return self.client.delete_and_set_hashmap(key, hashmap, **kwargs)
+

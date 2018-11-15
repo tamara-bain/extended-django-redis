@@ -5,6 +5,15 @@ This module adds additional functionality to django redis' backend including the
 #### Set Hashmap
 `set_hashmap(key, dictionary, **kwargs)`
 Implements [hmset](https://redis.io/commands/hmset)
+This will automatically serialize non-integer values just like django redis cache's 'set'.
+By default it stores a `_last_set: timestamp` field that contains a timestamp of when the field was last set.
+This field is popped off when retrieving the entire hashmap with get_hashmap
+and only accessible through `get_hashmap_value`.
+
+#### Delete and Set Hashmap
+`delete_and_set_hashmap(self, key, dict, **kwargs):`
+Same as set hashmap but deletes the existing hashmap in an atomic operation
+before setting the new hashmap. If the key doesn't exist the deletion fails silently.
 
 #### Get Hashmap 
 `get_hashmap(key, **kwargs)`
@@ -16,7 +25,8 @@ Implements [hget](https://redis.io/commands/hget)
 
 #### Age
 `age(key, original_ttl, **kwargs)`
-The age of the key calculated from [ttl](https://redis.io/commands/ttl) and the original ttl given when the key was set
+The age of the key calculated from [ttl](https://redis.io/commands/ttl) and the original ttl given when the key was set.
+Returns None if the key never expires.
 
 #### Counter
 `counter(self, key, **kwargs)`

@@ -49,6 +49,9 @@ class DjangoRedisCacheTests(TestCase):
     self.assertAlmostEqual(self.cache.age(test_key, 2), 1, 1)
     time.sleep(1)
     # should return None if the key has expired or does not exist
+    self.assertEqual(self.cache.age(test_key, 2), 2)
+    # should return None if they key does not expire
+    self.cache.set(test_key, 1, timeout=None)
     self.assertEqual(self.cache.age(test_key, 2), None)
 
   def test_set_hashmap(self):
@@ -71,7 +74,22 @@ class DjangoRedisCacheTests(TestCase):
     self.assertEqual(result["a"], "☢")
     self.assertEqual(result["b"], "not a dog")
     self.assertEqual(result["c"], 3)
-    return
+
+  def test_delete_and_set_hashmap(self):
+      # calling with a non_existant key should not cause an error
+      test_key = "test_key"
+      hashmap = {'d': 'new'}
+      self.assertFalse(self.cache.has_key(test_key))
+      self.cache.delete_and_set_hashmap(test_key, hashmap)
+      result = self.cache.get_hashmap(test_key)
+      self.assertEqual(result, hashmap)
+
+      # calling again should override the key with a new dictionary
+      test_key = "test_key"
+      hashmap2 = {'e': 'newer'}
+      self.cache.delete_and_set_hashmap(test_key, hashmap2)
+      result = self.cache.get_hashmap(test_key)
+      self.assertEqual(result, hashmap2)
 
   def test_get_hashmap(self):
     test_key = "test_key"

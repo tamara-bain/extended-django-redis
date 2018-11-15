@@ -40,6 +40,15 @@ class CacheAndClientSharedInterface(ABC):
     pass
 
   @abstractmethod
+  def delete_and_set_hashmap(self, key, dict, **kwargs):
+      """
+      Same as set hashmap but deletes the existing hashmap in an atomic operation
+      before setting the new hashmap. If the key doesn't exist the deletion
+      fails silently.
+      """
+      pass
+
+  @abstractmethod
   def get_hashmap(self, key, **kwargs):
     """
     Returns a dictionary of primitives for a given key.

@@ -40,22 +40,25 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
     def age(self, key, original_ttl, version=None, client=None):
         """
         Calculates the age of an object given the original ttl.
-        If the key does not exist returns None.
+        Returns none if the key never expires.
         """
         ttl = self.ttl(key, version=version, client=client)
-        if (ttl == 0):
+        if (ttl == None):
             return None
         return original_ttl - ttl
 
-    def set_hashmap(self, key, dictionary, version=None, client=None, creation_key="_created"):
+    def delete_and_set_hashmap(self, key, dictionary, **kwargs):
+        self._set_hashmap(key, dictionary, clear_existing=True, **kwargs)
+
+    def set_hashmap(self, key, dictionary, **kwargs):
+        self._set_hashmap(key, dictionary, clear_existing=False, **kwargs)
+
+    def _set_hashmap(self, key, dictionary, version=None, client=None, last_set_key="_last_set", clear_existing=False):
         """
         Dictionary values must be strings or numbers.
         """
-
         if type(dictionary) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
-
-
 
         if client is None:
             client = self.get_client(write=True)
@@ -63,19 +66,28 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         key = self.make_key(key, version=version)
 
         dictionary = {k: self.encode(v) for k, v in dictionary.items()}
-        # store creation time, this has the added benefit of
+
+        # store update time, this has the added benefit of
         # letting us save empty dictionaries in cache
         # we pop this off before returning all keys
-        dictionary[creation_key] = self.encode(int(time.time()))
+        dictionary[last_set_key] = self.encode(int(time.time()))
 
         try:
-            value = client.hmset(key, dictionary)
+            if clear_existing:
+                list = [item for key in dictionary for item in (key, dictionary[key])]
+                lua = """
+                redis.call('DEL', KEYS[1])
+                local result = redis.call('HMSET', KEYS[1], unpack(ARGV))
+                return result
+                """
+                value = client.eval(lua, 1, key, *list)
+            else:
+                value = client.hmset(key, dictionary)
         except _main_exceptions as e:
             raise ConnectionInterrupted(connection=client, parent=e)
-
         return value
 
-    def get_hashmap(self, key, version=None, client=None, decode=True, creation_key="_created"):
+    def get_hashmap(self, key, version=None, client=None, decode=True, last_set_key="_last_set"):
         """
         Returns a python dictionary if it exists otherwise {}.
         """
@@ -90,7 +102,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
             raise ConnectionInterrupted(connection=client, parent=e)
 
         dictionary = {k.decode('utf8'): self.decode(v) for k, v in value.items()}
-        dictionary.pop(creation_key, None)
+        dictionary.pop(last_set_key, None)
         return dictionary
 
     def get_hashmap_value(self, key, field, version=None, client=None):

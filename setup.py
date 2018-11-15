@@ -6,7 +6,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
   name='extended-django-redis',
-  version='0.22',
+  version='0.22.1',
   packages=find_packages(),
   include_package_data=True,
   install_requires=['Django==2.1.3', 'django-redis==4.9.0', 'pytz==2018.7', 'redis==2.10.6'],

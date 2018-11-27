@@ -12,7 +12,7 @@ class LockError(Exception):
 
 class InMemoryLock:
     """
-    Redis lock code adapted from reds.lock.Lock
+    Redis lock code adapted from redis.lock.Lock
     """
 
     def __init__(self, cache, key, timeout=None, sleep=0.1, blocking_timeout=None, blocking=True):
@@ -21,7 +21,7 @@ class InMemoryLock:
         self.timeout = timeout
         self.sleep = sleep
         self.blocking_timeout = blocking_timeout
-        self.blocking = True
+        self.blocking = blocking
         self.acquired_token = None
 
     def __enter__(self):
@@ -71,14 +71,22 @@ class InMemoryLock:
             self.cache._set(self.key, token, self.timeout)
             return True
 
-    def release(self):
+    def release(self, ignore_lock_errors=False):
         "Releases the already acquired lock"
         expected_token = self.acquired_token
-        if expected_token is None:
-            raise LockError("Cannot release an unlocked lock")
-        self.do_release(expected_token)
+
+        if ignore_lock_errors:
+            try:
+                self.do_release(expected_token)
+            except LockError:
+                pass
+        else:
+            self.do_release(expected_token)
 
     def do_release(self, expected_token):
+        if expected_token is None:
+            raise LockError("Cannot release an unlocked lock")
+
         with self.cache._lock:
             lock_value = None
             if self.cache._has_key(self.key):
@@ -100,7 +108,7 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
     def lock(self, key, version=None, timeout=DEFAULT_TIMEOUT, sleep=0.1, blocking_timeout=None, **kwargs):
         key = self.make_key(key, version=version)
         self.validate_key(key)
-        return InMemoryLock(self, key, timeout=timeout, sleep=sleep, blocking_timeout=blocking_timeout, blocking=False)
+        return InMemoryLock(self, key, timeout=timeout, sleep=sleep, blocking_timeout=blocking_timeout)
 
     def ttl(self, key, version=None, **kwargs):
         """Obtains the time before expiry for a given key"""

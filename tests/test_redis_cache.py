@@ -1,12 +1,20 @@
 from unittest import TestCase
 from django.core.cache import cache, caches
+from redis.exceptions import LockError
 import time
 import threading
+from .settings import SETTINGS_DICT
+from django.conf import settings
 
 class DjangoRedisCacheTests(TestCase):
   def setUp(self):
+    if not settings.configured:
+      settings.configure(**SETTINGS_DICT)
+
     self.cache = cache
     self.default_timeout = self.cache.client._backend.default_timeout
+
+    self.lock_error = LockError
 
     try:
       self.cache.clear()
@@ -118,10 +126,72 @@ class DjangoRedisCacheTests(TestCase):
     # an unknown value should return None
     self.assertEqual(self.cache.get_hashmap_value(test_key, "c"), None)
 
+  def test_lock(self):
+    lock_key = "foobar"
+    lock = self.cache.lock(lock_key)
+    result = lock.acquire()
+    self.assertEqual(result, True)
+
+    # we should not be able to acquire the lock while another process has it
+    lock2 = self.cache.lock(lock_key)
+    result = lock2.acquire(blocking=False)
+    self.assertEqual(result, False)
+
+    # after releasing we should be able to acquire the lock
+    lock.release()
+    result = lock2.acquire()
+    self.assertEqual(result, True)
+    lock2.release()
+
+    # if we run without block = false the process should continue to run until
+    # it can obtain a lock
+    result = lock.acquire(blocking=False)
+    self.assertEqual(result, True)
+
+    # do this all in one thread so that thread_local works (see redis lock class)
+    def acquire_and_release_lock():
+        lock2.acquire(blocking=True)
+
+        # after we release lock1 lock2 should be able to acquire it
+        lock2.release()
+
+    thread = threading.Thread(target=acquire_and_release_lock)
+    thread.start()
+    self.assertTrue(thread.isAlive())
+    lock.release()
+
+    # set a blocking timeout, we should stop trying to acquire the lock after the blocking
+    # timeout has passed
+    lock.acquire()
+    initial_time = time.time()
+    lock3 = self.cache.lock(lock_key, blocking_timeout=1)
+    result = lock3.acquire()
+    self.assertFalse(result)
+    self.assertAlmostEqual(initial_time - time.time(), -1, 1)
+    lock.release()
+
+    # If we have a task who's lock expires before we can release it we should throw an error
+    lock4 = self.cache.lock(lock_key, timeout=1)
+    result = lock4.acquire()
+    self.assertTrue(result)
+    time.sleep(lock4.timeout*2)
+    with self.assertRaises(self.lock_error):
+        lock4.release()
+
+    # but if we pass in ignore_lock_errors then we shouldn't get an error
+    lock4.release(ignore_lock_errors=True)
+
 class DjangoLocMemCacheTests(DjangoRedisCacheTests):
+
     def setUp(self):
+        if not settings.configured:
+            settings.configure(**SETTINGS_DICT)
+
+        from extended_django_redis.locmem_cache import LockError as LocMemLockError
+
         self.cache = caches['locmem']
         self.default_timeout = 300
+        self.lock_error = LocMemLockError
 
         try:
           self.cache.clear()
@@ -147,40 +217,3 @@ class DjangoLocMemCacheTests(DjangoRedisCacheTests):
         # Test ttl with not existent key
         ttl = self.cache.ttl("not-existent-key")
         self.assertEqual(ttl, 0)
-
-    def test_lock(self):
-        lock_key = "foobar"
-        lock = self.cache.lock(lock_key)
-        result = lock.acquire()
-        self.assertEqual(result, True)
-
-        # we should not be able to acquire the lock while another process has it
-        lock2 = self.cache.lock(lock_key)
-        result = lock2.acquire(blocking=False)
-        self.assertEqual(result, False)
-
-        # after releasing we should be able to acquire the lock
-        lock.release()
-        result = lock2.acquire()
-        self.assertEqual(result, True)
-        lock2.release()
-
-        # if we run without block = false the process should continue to run until
-        # it can obtain a lock
-        lock.acquire(blocking=False)
-        thread = threading.Thread(target=lock2.acquire)
-        thread.start()
-        self.assertTrue(thread.isAlive())
-        lock.release()
-        time.sleep(lock2.sleep)
-        # lock2 should have the lock so it should not throw an error
-        lock2.release()
-
-        # set a blocking timeout, we should stop trying to acquire the lock after the blocking
-        # timeout has passed
-        lock.acquire()
-        initial_time = time.time()
-        lock3 = self.cache.lock(lock_key, blocking_timeout=1)
-        result = lock3.acquire()
-        self.assertFalse(result)
-        self.assertAlmostEqual(initial_time - time.time(), -1, 1)

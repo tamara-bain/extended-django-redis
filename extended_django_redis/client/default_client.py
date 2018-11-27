@@ -4,8 +4,42 @@ from django_redis.client import DefaultClient as DjangoRedisDefaultClient
 from django_redis.client.default import _main_exceptions
 from django_redis.exceptions import ConnectionInterrupted
 from .base_client import BaseClient
+from redis.lock import LockError
+import functools
+
+def extended_release(func):
+
+    @functools.wraps(func)
+    def wrapper(ignore_lock_errors=False):
+        if ignore_lock_errors:
+            try:
+                return func()
+            except LockError:
+                return
+        else:
+            return func()
+
+    return wrapper
+
 
 class DefaultClient(DjangoRedisDefaultClient, BaseClient):
+
+
+    def lock(self, key, version=None, timeout=None, sleep=0.1,
+             blocking_timeout=None, client=None):
+        if client is None:
+            client = self.get_client(write=True)
+
+        key = self.make_key(key, version=version)
+        lock = client.lock(key, timeout=timeout, sleep=sleep,
+                           blocking_timeout=blocking_timeout)
+
+        # wrap release so that we can decide whether or not to throw lock errors
+        # this is to stop users from constantly having to write: try/finally inside of try/finally
+        # blocks when they are trying to release a lock that might already have been released
+        # due to timeout
+        lock.release = extended_release(lock.release)
+        return lock
 
 
     def counter(self, key, delta=1, timeout=DEFAULT_TIMEOUT, version=None, client=None):

@@ -129,6 +129,7 @@ class DjangoRedisCacheTests(TestCase):
   def test_lock(self):
     lock_key = "foobar"
     lock = self.cache.lock(lock_key)
+    self.assertIn(lock_key, str(lock.name))
     result = lock.acquire()
     self.assertEqual(result, True)
 

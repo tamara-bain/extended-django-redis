@@ -17,6 +17,7 @@ class InMemoryLock:
 
     def __init__(self, cache, key, timeout=None, sleep=0.1, blocking_timeout=None, blocking=True):
         self.cache = cache
+        self.name = key
         self.key = key
         self.timeout = timeout
         self.sleep = sleep

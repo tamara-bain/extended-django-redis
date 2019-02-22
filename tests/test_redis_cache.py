@@ -83,16 +83,12 @@ class DjangoRedisCacheTests(TestCase):
     self.assertEqual(result["b"], "not a dog")
     self.assertEqual(result["c"], 3)
 
-  def test_hashmap_fields_are_always_strings(self):
+  def test_hashmap_fields_must_be_strings(self):
       test_key = "test_key"
       hashmap = {1: '1', 2: '2'}
-      self.cache.set_hashmap(test_key, hashmap)
 
-      # hashmap should have converted numeric keys into strings
-      result = self.cache.get_hashmap(test_key)
-      self.assertIsNone(result.get(1, None))
-      self.assertIsNotNone(result.get("1", None))
-
+      with self.assertRaises(TypeError):
+        self.cache.set_hashmap(test_key, hashmap)
 
   def test_delete_and_set_hashmap(self):
       # calling with a non_existant key should not cause an error

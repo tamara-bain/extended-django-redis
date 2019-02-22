@@ -9,6 +9,7 @@ This will automatically serialize non-integer values just like django redis cach
 By default it stores a `_last_set: timestamp` field that contains a timestamp of when the field was last set.
 This field is popped off when retrieving the entire hashmap with get_hashmap
 and only accessible through `get_hashmap_value`.
+Note: Fields are always strings
 
 #### Delete and Set Hashmap
 `delete_and_set_hashmap(self, key, dict, **kwargs):`
@@ -22,6 +23,7 @@ Implements [hgetall](https://redis.io/commands/hgetall). Returns an empty hashma
 #### Get Hashmap Value
 `get_hashmap_value(key, field, **kwargs)`
 Implements [hget](https://redis.io/commands/hget)
+NOTE: Fields are always strings
 
 #### Age
 `age(key, original_ttl, **kwargs)`

@@ -90,6 +90,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
     def _set_hashmap(self, key, dictionary, version=None, client=None, last_set_key="_last_set", clear_existing=False):
         """
         Dictionary values must be strings or numbers.
+        Dictionary keys must be strings
         """
         if type(dictionary) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
@@ -100,6 +101,7 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
         key = self.make_key(key, version=version)
 
         dictionary = {k: self.encode(v) for k, v in dictionary.items()}
+
 
         # store update time, this has the added benefit of
         # letting us save empty dictionaries in cache

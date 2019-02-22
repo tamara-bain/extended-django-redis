@@ -167,7 +167,10 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
         if type(hashmap) is not dict:
             raise ValueError("set_hashmap expects dictionary to be a dict type")
 
-        hashmap = {str(key): pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
+        def NotStringException():
+            raise TypeError("Hashmap keys must be strings")
+
+        hashmap = {key if type(key) is str else NotStringException(): pickle.dumps(value, pickle.HIGHEST_PROTOCOL) for key, value in hashmap.items()}
 
         # store update time
         # we pop this off before returning all keys
@@ -201,6 +204,9 @@ class ExtendedLocMemCache(LocMemCache, ExtendedBaseCache):
         return dictionary
 
     def get_hashmap_value(self, key, field, version=None, **kwargs):
+        if type(field) is not str:
+            raise TypeError("Hashmap keys must be strings")
+
         key = self.make_key(key, version=version)
         self.validate_key(key)
         with self._lock:

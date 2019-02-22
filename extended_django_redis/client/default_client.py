@@ -100,7 +100,10 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
 
         key = self.make_key(key, version=version)
 
-        dictionary = {k: self.encode(v) for k, v in dictionary.items()}
+        def NotStringException():
+            raise TypeError("Hashmap keys must be strings")
+
+        dictionary = {k if type(k) is str else NotStringException(): self.encode(v) for k, v in dictionary.items()}
 
 
         # store update time, this has the added benefit of
@@ -149,6 +152,9 @@ class DefaultClient(DjangoRedisDefaultClient, BaseClient):
             client = self.get_client(write=False)
 
         key = self.make_key(key, version=version)
+
+        if type(field) is not str:
+            raise TypeError("Hashmap keys must be strings")
 
         try:
             value = client.hget(key, field)

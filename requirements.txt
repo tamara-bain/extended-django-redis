@@ -1,4 +1,4 @@
-Django==2.2.1
+Django==2.2.2
 django-redis==4.9.0
 pytz==2018.7
 redis==2.10.6

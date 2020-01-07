@@ -9,6 +9,6 @@ setup(
   version='0.23.8',
   packages=find_packages(),
   include_package_data=True,
-  install_requires=['Django', 'django-redis==4.9.0', 'pytz', 'redis==2.10.6'],
+  install_requires=['Django', 'django-redis==4.11.0', 'pytz', 'redis==3.0.1'],
   description='Extends the standard caching backend for Django to have additional redis features',
 )
